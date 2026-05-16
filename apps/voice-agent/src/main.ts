@@ -88,6 +88,5 @@ export default defineAgent<ProcessUserData>({
 cli.runApp(
   new ServerOptions({
     agent: fileURLToPath(import.meta.url),
-    agentName: "voice-agent",
   })
 )
