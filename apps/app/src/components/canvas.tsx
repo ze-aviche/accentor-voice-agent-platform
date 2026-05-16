@@ -1,55 +1,19 @@
-import {
-  addEdge,
-  applyEdgeChanges,
-  applyNodeChanges,
-  Background,
-  Controls,
-  MiniMap,
-  ReactFlow,
-} from "@xyflow/react"
+import { Background, Controls, MiniMap, ReactFlow } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
-import { useCallback, useState } from "react"
+import { useShallow } from "zustand/react/shallow"
+import { useFlowStore } from "@/stores/flow"
 
-const initialNodes = [
-  {
-    id: "n1",
-    data: { label: "Node 1" },
-    position: { x: 0, y: 0 },
-    type: "input",
-  },
-  {
-    id: "n2",
-    data: { label: "Node 2" },
-    position: { x: 100, y: 100 },
-  },
-]
-
-const initialEdges = [
-  {
-    id: "n1-n2",
-    source: "n1",
-    target: "n2",
-  },
-]
+const selector = (state) => ({
+  nodes: state.nodes,
+  edges: state.edges,
+  onNodesChange: state.onNodesChange,
+  onEdgesChange: state.onEdgesChange,
+  onConnect: state.onConnect,
+})
 
 export function Canvas() {
-  const [nodes, setNodes] = useState(initialNodes)
-  const [edges, setEdges] = useState(initialEdges)
-
-  const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
-  )
-
-  const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
-  )
-
-  const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    []
-  )
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect } =
+    useFlowStore(useShallow(selector))
 
   return (
     <ReactFlow
