@@ -3,23 +3,13 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "biome lint .",
+    "format": "biome check --write --linter-enabled=false .",
     "agent:deploy": "lk agent deploy --skip-sdk-check --config apps/voice-agent/livekit.toml --secrets-file apps/voice-agent/.env"
   },
   "devDependencies": {
-    "@eslint/js": "catalog:",
-    "@tanstack/eslint-plugin-query": "catalog:",
-    "@tanstack/eslint-plugin-router": "catalog:",
-    "@trivago/prettier-plugin-sort-imports": "catalog:",
-    "eslint": "catalog:",
-    "eslint-plugin-react-hooks": "catalog:",
-    "eslint-plugin-react-refresh": "catalog:",
-    "globals": "catalog:",
-    "prettier": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
+    "@biomejs/biome": "catalog:",
     "typescript": "catalog:",
-    "typescript-eslint": "catalog:",
     "zod": "catalog:"
   }
 }
