@@ -4,10 +4,9 @@ import { UploadIcon } from "lucide-react"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 
-import { publishAgentFormSchema } from "@workspace/shared/agents/schemas"
+import { publishAgentInputSchema } from "@workspace/shared/agents/schemas"
 import type {
   AgentVersionSummary,
-  PublishAgentFormInput,
   PublishAgentInput,
 } from "@workspace/shared/agents/types"
 import { Button } from "@workspace/ui/components/button"
@@ -42,8 +41,8 @@ export function PublishAgentForm() {
   const nextVersionNumber =
     versions.length > 0 ? Math.max(...versions.map((v) => v.number)) + 1 : 1
 
-  const form = useForm<PublishAgentFormInput>({
-    resolver: zodResolver(publishAgentFormSchema),
+  const form = useForm<PublishAgentInput>({
+    resolver: zodResolver(publishAgentInputSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -51,11 +50,11 @@ export function PublishAgentForm() {
   })
 
   const publishAgentMutation = useMutation({
-    mutationFn: (payload: PublishAgentInput) =>
+    mutationFn: (values: PublishAgentInput) =>
       api.post<AgentVersionSummary, PublishAgentInput>(
         `/agents/${id}/publish`,
         {
-          body: payload,
+          body: values,
         }
       ),
     onSuccess: (publishedVersion) => {
@@ -68,15 +67,6 @@ export function PublishAgentForm() {
       toast.error(error.message)
     },
   })
-
-  function handleSubmit(values: PublishAgentFormInput) {
-    publishAgentMutation.mutate({
-      name: values.name?.trim() ? values.name.trim() : undefined,
-      description: values.description?.trim()
-        ? values.description.trim()
-        : undefined,
-    })
-  }
 
   return (
     <Dialog
@@ -98,7 +88,12 @@ export function PublishAgentForm() {
           <DialogDescription>Publish a new agent version</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+        <form
+          onSubmit={form.handleSubmit((values) =>
+            publishAgentMutation.mutate(values)
+          )}
+          noValidate
+        >
           <FieldGroup>
             <Controller
               name="name"

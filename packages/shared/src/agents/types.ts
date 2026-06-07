@@ -2,9 +2,7 @@ import type { z } from "zod"
 
 import type { AgentConfig } from "../agent-config/types"
 import type {
-  createAgentFormSchema,
   createAgentInputSchema,
-  publishAgentFormSchema,
   publishAgentInputSchema,
   sipInboundAgentConfigInputSchema,
   updateAgentInputSchema,
@@ -54,10 +52,8 @@ export type DeleteAgentResponse = {
   id: string
 }
 
-export type CreateAgentFormInput = z.infer<typeof createAgentFormSchema>
 export type CreateAgentInput = z.infer<typeof createAgentInputSchema>
 export type UpdateAgentInput = z.infer<typeof updateAgentInputSchema>
-export type PublishAgentFormInput = z.infer<typeof publishAgentFormSchema>
 export type PublishAgentInput = z.infer<typeof publishAgentInputSchema>
 export type WebRtcAgentConfigInput = z.infer<
   typeof webrtcAgentConfigInputSchema

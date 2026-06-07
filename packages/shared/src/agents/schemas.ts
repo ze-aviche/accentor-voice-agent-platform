@@ -17,10 +17,6 @@ export const agentVersionParamsSchema = z.object({
   number: z.coerce.number().int().positive(),
 })
 
-export const createAgentFormSchema = z.object({
-  name: agentNameSchema,
-})
-
 export const createAgentInputSchema = z.object({
   name: agentNameSchema,
   draftConfig: agentConfigSchema,
@@ -32,11 +28,6 @@ export const updateAgentInputSchema = z.object({
 })
 
 export const publishAgentInputSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-})
-
-export const publishAgentFormSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
 })

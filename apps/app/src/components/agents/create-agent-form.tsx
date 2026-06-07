@@ -6,10 +6,9 @@ import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 
 import { createDefaultAgentConfig } from "@workspace/shared/agent-config/defaults"
-import { createAgentFormSchema } from "@workspace/shared/agents/schemas"
+import { createAgentInputSchema } from "@workspace/shared/agents/schemas"
 import type {
   AgentDraft,
-  CreateAgentFormInput,
   CreateAgentInput,
 } from "@workspace/shared/agents/types"
 import { Button } from "@workspace/ui/components/button"
@@ -39,17 +38,18 @@ export function CreateAgentForm() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const form = useForm<CreateAgentFormInput>({
-    resolver: zodResolver(createAgentFormSchema),
+  const form = useForm<CreateAgentInput>({
+    resolver: zodResolver(createAgentInputSchema),
     defaultValues: {
       name: "",
+      draftConfig: createDefaultAgentConfig(),
     },
   })
 
   const createAgentMutation = useMutation({
-    mutationFn: (payload: CreateAgentInput) =>
+    mutationFn: (values: CreateAgentInput) =>
       api.post<AgentDraft, CreateAgentInput>("/agents", {
-        body: payload,
+        body: values,
       }),
     onSuccess: (agent) => {
       setOpen(false)
@@ -65,22 +65,13 @@ export function CreateAgentForm() {
     },
   })
 
-  function handleSubmit(values: CreateAgentFormInput) {
-    createAgentMutation.mutate({
-      name: values.name,
-      draftConfig: createDefaultAgentConfig(),
-    })
-  }
-
   return (
     <Dialog
       open={open}
       onOpenChange={(open) => {
         setOpen(open)
-        if (!open) {
-          form.reset()
-          createAgentMutation.reset()
-        }
+        form.reset()
+        createAgentMutation.reset()
       }}
     >
       <DialogTrigger>
@@ -95,7 +86,12 @@ export function CreateAgentForm() {
           <DialogDescription>Create a new agent</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+        <form
+          onSubmit={form.handleSubmit((values) =>
+            createAgentMutation.mutate(values)
+          )}
+          noValidate
+        >
           <FieldGroup>
             <Controller
               name="name"
