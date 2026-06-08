@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm"
 import { Hono } from "hono"
 
 import { db } from "@workspace/db/client"
-import { agentsTable, agentVersionsTable } from "@workspace/db/db/schema"
+import { agentsTable, agentVersionsTable } from "@workspace/db/schema/agents"
 import type { AgentConfig } from "@workspace/shared/agent-config/types"
 import {
   agentIdParamsSchema,

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm"
 import { Hono } from "hono"
 
 import { db } from "@workspace/db/client"
-import { phoneNumbersTable } from "@workspace/db/db/schema"
+import { phoneNumbersTable } from "@workspace/db/schema/phone-numbers"
 import {
   createPhoneNumberInputSchema,
   phoneNumberIdParamsSchema,
