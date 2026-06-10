@@ -1,5 +1,10 @@
-import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
-import * as React from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import {
+  ChevronsUpDownIcon,
+  GalleryVerticalEndIcon,
+  PlusIcon,
+} from "lucide-react"
 
 import {
   DropdownMenu,
@@ -8,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
 import {
@@ -17,21 +21,40 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
+import { toast } from "@workspace/ui/components/sonner"
+import { organization } from "@/lib/auth/client"
+import {
+  fullOrganizationQueryOptions,
+  organizationsListQueryOptions,
+} from "@/lib/auth/organization"
 
-export function TeamSwitcher({
-  teams,
-}: {
-  teams: {
-    name: string
-    logo: React.ReactNode
-    plan: string
-  }[]
-}) {
+export function OrganizationSwitcher() {
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
-  if (!activeTeam) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const { data: activeOrganization } = useQuery(fullOrganizationQueryOptions())
+  const { data: organizations } = useQuery(organizationsListQueryOptions())
+
+  const setActiveMutation = useMutation({
+    mutationFn: async (organizationId: string) => {
+      const result = await organization.setActive({ organizationId })
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+    },
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ type: "active" })
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+
+  if (!activeOrganization) {
     return null
   }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -45,11 +68,12 @@ export function TeamSwitcher({
             }
           >
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              {activeTeam.logo}
+              <GalleryVerticalEndIcon className="size-4" />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{activeTeam.name}</span>
-              <span className="truncate text-xs">{activeTeam.plan}</span>
+              <span className="truncate font-medium">
+                {activeOrganization.name}
+              </span>
             </div>
             <ChevronsUpDownIcon className="ml-auto" />
           </DropdownMenuTrigger>
@@ -61,30 +85,32 @@ export function TeamSwitcher({
           >
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Teams
+                Organizations
               </DropdownMenuLabel>
-              {teams.map((team, index) => (
+              {organizations?.map((org) => (
                 <DropdownMenuItem
-                  key={team.name}
-                  onClick={() => setActiveTeam(team)}
+                  key={org.id}
+                  onClick={() => setActiveMutation.mutate(org.id)}
                   className="gap-2 p-2"
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border">
-                    {team.logo}
+                    <GalleryVerticalEndIcon className="size-4 shrink-0" />
                   </div>
-                  {team.name}
-                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                  {org.name}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="gap-2 p-2">
+              <DropdownMenuItem
+                className="gap-2 p-2"
+                onClick={() => navigate({ to: "/create-organization" })}
+              >
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                   <PlusIcon className="size-4" />
                 </div>
                 <div className="font-medium text-muted-foreground">
-                  Add team
+                  Add organization
                 </div>
               </DropdownMenuItem>
             </DropdownMenuGroup>
