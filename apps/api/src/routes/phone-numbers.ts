@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { Hono } from "hono"
 
 import { db } from "@workspace/db/client"
@@ -12,13 +12,19 @@ import type {
   PhoneNumber,
   PhoneNumberListItem,
 } from "@workspace/shared/phone-numbers/types"
+import { requireOrganization } from "@/lib/auth/organization"
 import { validator } from "@/lib/validator"
 
 export const phoneNumberRoutes = new Hono()
 
-phoneNumberRoutes.get("/", async (c) => {
+phoneNumberRoutes.get("/", requireOrganization, async (c) => {
+  const organizationId = c.get("organizationId")
+
   try {
     const phoneNumbers = await db.query.phoneNumbersTable.findMany({
+      where: {
+        organizationId,
+      },
       with: {
         agent: {
           columns: {
@@ -44,15 +50,33 @@ phoneNumberRoutes.get("/", async (c) => {
 
 phoneNumberRoutes.post(
   "/",
+  requireOrganization,
   validator("json", createPhoneNumberInputSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
+
     try {
       const payload = c.req.valid("json")
+
+      const agent = await db.query.agentsTable.findFirst({
+        where: {
+          id: payload.agentId!,
+          organizationId,
+        },
+        columns: {
+          id: true,
+        },
+      })
+
+      if (!agent) {
+        return c.json({ error: "Agent not found" }, 404)
+      }
 
       const [phoneNumber] = await db
         .insert(phoneNumbersTable)
         .values({
           id: crypto.randomUUID(),
+          organizationId,
           number: payload.number,
           agentId: payload.agentId ?? null,
           agentVersionId: payload.agentVersionId ?? null,
@@ -68,13 +92,31 @@ phoneNumberRoutes.post(
 
 phoneNumberRoutes.patch(
   "/:id",
+  requireOrganization,
   validator("param", phoneNumberIdParamsSchema),
   validator("json", updatePhoneNumberInputSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id } = c.req.valid("param")
 
     try {
       const payload = c.req.valid("json")
+
+      if (payload.agentId) {
+        const agent = await db.query.agentsTable.findFirst({
+          where: {
+            id: payload.agentId,
+            organizationId,
+          },
+          columns: {
+            id: true,
+          },
+        })
+
+        if (!agent) {
+          return c.json({ error: "Agent not found" }, 404)
+        }
+      }
 
       const [phoneNumber] = await db
         .update(phoneNumbersTable)
@@ -84,7 +126,12 @@ phoneNumberRoutes.patch(
           agentVersionId: payload.agentVersionId ?? null,
           updatedAt: new Date(),
         })
-        .where(eq(phoneNumbersTable.id, id))
+        .where(
+          and(
+            eq(phoneNumbersTable.id, id),
+            eq(phoneNumbersTable.organizationId, organizationId)
+          )
+        )
         .returning()
 
       if (!phoneNumber) {
@@ -100,14 +147,21 @@ phoneNumberRoutes.patch(
 
 phoneNumberRoutes.delete(
   "/:id",
+  requireOrganization,
   validator("param", phoneNumberIdParamsSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id } = c.req.valid("param")
 
     try {
       const [deletedPhoneNumber] = await db
         .delete(phoneNumbersTable)
-        .where(eq(phoneNumbersTable.id, id))
+        .where(
+          and(
+            eq(phoneNumbersTable.id, id),
+            eq(phoneNumbersTable.organizationId, organizationId)
+          )
+        )
         .returning()
 
       if (!deletedPhoneNumber) {

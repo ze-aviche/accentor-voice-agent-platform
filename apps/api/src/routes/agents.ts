@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { Hono } from "hono"
 
 import { db } from "@workspace/db/client"
@@ -21,13 +21,19 @@ import type {
   AgentVersionSummary,
   AgentVersionsList,
 } from "@workspace/shared/agents/types"
+import { requireOrganization } from "@/lib/auth/organization"
 import { validator } from "@/lib/validator"
 
 export const agentRoutes = new Hono()
 
-agentRoutes.get("/", async (c) => {
+agentRoutes.get("/", requireOrganization, async (c) => {
+  const organizationId = c.get("organizationId")
+
   try {
     const agents = await db.query.agentsTable.findMany({
+      where: {
+        organizationId,
+      },
       columns: {
         draftConfig: false,
       },
@@ -49,24 +55,32 @@ agentRoutes.get("/", async (c) => {
   }
 })
 
-agentRoutes.post("/", validator("json", createAgentInputSchema), async (c) => {
-  try {
-    const payload = c.req.valid("json")
+agentRoutes.post(
+  "/",
+  requireOrganization,
+  validator("json", createAgentInputSchema),
+  async (c) => {
+    const organizationId = c.get("organizationId")
 
-    const [agent] = await db
-      .insert(agentsTable)
-      .values({
-        id: crypto.randomUUID(),
-        name: payload.name,
-        draftConfig: payload.draftConfig,
-      })
-      .returning()
+    try {
+      const payload = c.req.valid("json")
 
-    return c.json(agent satisfies AgentDraft, 201)
-  } catch {
-    return c.json({ error: "Failed to create agent" }, 500)
+      const [agent] = await db
+        .insert(agentsTable)
+        .values({
+          id: crypto.randomUUID(),
+          organizationId,
+          name: payload.name,
+          draftConfig: payload.draftConfig,
+        })
+        .returning()
+
+      return c.json(agent satisfies AgentDraft, 201)
+    } catch {
+      return c.json({ error: "Failed to create agent" }, 500)
+    }
   }
-})
+)
 
 agentRoutes.post(
   "/config/webrtc",
@@ -178,14 +192,17 @@ agentRoutes.post(
 
 agentRoutes.post(
   "/:id/duplicate",
+  requireOrganization,
   validator("param", agentIdParamsSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id: agentId } = c.req.valid("param")
 
     try {
       const sourceAgent = await db.query.agentsTable.findFirst({
         where: {
           id: agentId,
+          organizationId,
         },
       })
 
@@ -197,6 +214,7 @@ agentRoutes.post(
         .insert(agentsTable)
         .values({
           id: crypto.randomUUID(),
+          organizationId,
           name: `${sourceAgent.name} (copy)`.slice(0, 255),
           draftConfig: sourceAgent.draftConfig,
         })
@@ -209,42 +227,51 @@ agentRoutes.post(
   }
 )
 
-agentRoutes.get("/:id", validator("param", agentIdParamsSchema), async (c) => {
-  const { id: agentId } = c.req.valid("param")
+agentRoutes.get(
+  "/:id",
+  requireOrganization,
+  validator("param", agentIdParamsSchema),
+  async (c) => {
+    const organizationId = c.get("organizationId")
+    const { id: agentId } = c.req.valid("param")
 
-  try {
-    const agent = await db.query.agentsTable.findFirst({
-      where: {
-        id: agentId,
-      },
-      with: {
-        versions: {
-          columns: {
-            agentId: false,
-            config: false,
-          },
-          orderBy: {
-            number: "desc",
+    try {
+      const agent = await db.query.agentsTable.findFirst({
+        where: {
+          id: agentId,
+          organizationId,
+        },
+        with: {
+          versions: {
+            columns: {
+              agentId: false,
+              config: false,
+            },
+            orderBy: {
+              number: "desc",
+            },
           },
         },
-      },
-    })
+      })
 
-    if (!agent) {
-      return c.json({ error: "Agent not found" }, 404)
+      if (!agent) {
+        return c.json({ error: "Agent not found" }, 404)
+      }
+
+      return c.json(agent satisfies AgentDetail)
+    } catch {
+      return c.json({ error: "Failed to load agent" }, 500)
     }
-
-    return c.json(agent satisfies AgentDetail)
-  } catch {
-    return c.json({ error: "Failed to load agent" }, 500)
   }
-})
+)
 
 agentRoutes.patch(
   "/:id",
+  requireOrganization,
   validator("param", agentIdParamsSchema),
   validator("json", updateAgentInputSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id: agentId } = c.req.valid("param")
 
     try {
@@ -257,7 +284,12 @@ agentRoutes.patch(
           name: payload.name,
           draftConfig: payload.draftConfig,
         })
-        .where(eq(agentsTable.id, agentId))
+        .where(
+          and(
+            eq(agentsTable.id, agentId),
+            eq(agentsTable.organizationId, organizationId)
+          )
+        )
         .returning()
 
       if (!agent) {
@@ -273,14 +305,21 @@ agentRoutes.patch(
 
 agentRoutes.delete(
   "/:id",
+  requireOrganization,
   validator("param", agentIdParamsSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id: agentId } = c.req.valid("param")
 
     try {
       const [deletedAgent] = await db
         .delete(agentsTable)
-        .where(eq(agentsTable.id, agentId))
+        .where(
+          and(
+            eq(agentsTable.id, agentId),
+            eq(agentsTable.organizationId, organizationId)
+          )
+        )
         .returning({
           id: agentsTable.id,
         })
@@ -298,14 +337,17 @@ agentRoutes.delete(
 
 agentRoutes.get(
   "/:id/versions",
+  requireOrganization,
   validator("param", agentIdParamsSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id: agentId } = c.req.valid("param")
 
     try {
       const agent = await db.query.agentsTable.findFirst({
         where: {
           id: agentId,
+          organizationId,
         },
         columns: {
           id: true,
@@ -336,8 +378,10 @@ agentRoutes.get(
 
 agentRoutes.get(
   "/:id/versions/:number",
+  requireOrganization,
   validator("param", agentVersionParamsSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id: agentId, number: versionNumber } = c.req.valid("param")
 
     try {
@@ -348,6 +392,9 @@ agentRoutes.get(
         where: {
           agentId,
           number: versionNumber,
+          agent: {
+            organizationId,
+          },
         },
       })
 
@@ -364,9 +411,11 @@ agentRoutes.get(
 
 agentRoutes.post(
   "/:id/publish",
+  requireOrganization,
   validator("param", agentIdParamsSchema),
   validator("json", publishAgentInputSchema),
   async (c) => {
+    const organizationId = c.get("organizationId")
     const { id: agentId } = c.req.valid("param")
 
     try {
@@ -376,6 +425,7 @@ agentRoutes.post(
         const agent = await tx.query.agentsTable.findFirst({
           where: {
             id: agentId,
+            organizationId,
           },
         })
 
