@@ -1,11 +1,12 @@
 import { Hono } from "hono"
 import { AccessToken, RoomConfiguration } from "livekit-server-sdk"
 
+import { requireOrganization } from "@/lib/auth/organization"
 import { env } from "@/lib/env"
 
 export const tokenRoutes = new Hono()
 
-tokenRoutes.post("/", async (c) => {
+tokenRoutes.post("/", requireOrganization, async (c) => {
   const body = await c.req.json()
 
   const sessionId = crypto.randomUUID()

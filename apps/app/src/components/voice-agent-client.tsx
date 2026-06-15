@@ -10,7 +10,9 @@ import type { ReactNode } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { env } from "@/lib/env"
 
-const tokenSource = TokenSource.endpoint(`${env.API_URL}/api/token`)
+const tokenSource = TokenSource.endpoint(`${env.API_URL}/api/token`, {
+  credentials: "include",
+})
 
 type VoiceAgentClientProps = {
   agentId: string
