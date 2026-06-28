@@ -84,6 +84,7 @@ export function AgentsDataTable({ data }: { data: AgentsListResponse }) {
   const table = useReactTable({
     data,
     columns,
+    getRowId: (row) => row.id,
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

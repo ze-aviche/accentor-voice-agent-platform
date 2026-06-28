@@ -3,6 +3,7 @@ import {
   CopyIcon,
   DownloadIcon,
   MoreHorizontalIcon,
+  PencilIcon,
   Trash2Icon,
 } from "lucide-react"
 import { useState } from "react"
@@ -21,11 +22,13 @@ import {
 import { toast } from "@workspace/ui/components/sonner"
 import { DeleteAgentDialog } from "@/components/agents/delete-agent-dialog"
 import { DownloadAgentDialog } from "@/components/agents/download-agent-dialog"
+import { EditAgentNameDialog } from "@/components/agents/edit-agent-name-dialog"
 import { api } from "@/lib/api"
 
 export function AgentRowActions({ agent }: { agent: AgentsListItem }) {
-  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [editNameOpen, setEditNameOpen] = useState(false)
   const [downloadOpen, setDownloadOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const duplicateAgentMutation = useMutation({
@@ -45,15 +48,20 @@ export function AgentRowActions({ agent }: { agent: AgentsListItem }) {
 
   return (
     <>
-      <DeleteAgentDialog
+      <EditAgentNameDialog
         agent={agent}
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
+        open={editNameOpen}
+        onOpenChange={setEditNameOpen}
       />
       <DownloadAgentDialog
         agent={agent}
         open={downloadOpen}
         onOpenChange={setDownloadOpen}
+      />
+      <DeleteAgentDialog
+        agent={agent}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
       />
       <DropdownMenu>
         <DropdownMenuTrigger>
@@ -67,6 +75,10 @@ export function AgentRowActions({ agent }: { agent: AgentsListItem }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={4}>
+          <DropdownMenuItem onClick={() => setEditNameOpen(true)}>
+            <PencilIcon />
+            Edit name
+          </DropdownMenuItem>
           <DropdownMenuItem
             disabled={duplicateAgentMutation.isPending}
             onClick={() => duplicateAgentMutation.mutate()}
