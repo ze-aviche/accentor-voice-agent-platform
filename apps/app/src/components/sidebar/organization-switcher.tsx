@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
 import {
   ChevronsUpDownIcon,
   GalleryVerticalEndIcon,
   PlusIcon,
 } from "lucide-react"
+import { useState } from "react"
 
 import {
   DropdownMenu,
@@ -27,11 +27,12 @@ import {
   fullOrganizationQueryOptions,
   organizationsListQueryOptions,
 } from "@/lib/auth/organization"
+import { CreateOrganizationDialog } from "./create-organization-dialog"
 
 export function OrganizationSwitcher() {
   const { isMobile } = useSidebar()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const { data: activeOrganization } = useQuery(fullOrganizationQueryOptions())
   const { data: organizations } = useQuery(organizationsListQueryOptions())
@@ -104,7 +105,7 @@ export function OrganizationSwitcher() {
             <DropdownMenuGroup>
               <DropdownMenuItem
                 className="gap-2 p-2"
-                onClick={() => navigate({ to: "/create-organization" })}
+                onClick={() => setCreateDialogOpen(true)}
               >
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                   <PlusIcon className="size-4" />
@@ -117,6 +118,11 @@ export function OrganizationSwitcher() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+
+      <CreateOrganizationDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </SidebarMenu>
   )
 }
