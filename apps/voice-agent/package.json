@@ -16,6 +16,7 @@
     "@livekit/agents-plugin-livekit": "^1.4.1",
     "@livekit/agents-plugin-silero": "^1.4.1",
     "@livekit/plugins-ai-coustics": "^0.2.12",
+    "@livekit/plugins-ai-coustics-x86_64-pc-windows-msvc": "0.2.13",
     "@workspace/shared": "workspace:*",
     "dotenv": "catalog:",
     "livekit-server-sdk": "catalog:",
